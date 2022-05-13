@@ -6,6 +6,7 @@ import { reason as reasonIterated } from './reasoner-iterate'
 import { reason as reasonIterated2 } from './reasoner-iterate-2'
 import { reason as reasonIterated3 } from './reasoner-iterate-3'
 import { reason as reasonIterated4 } from './reasoner-iterate-4'
+import { reason as reasonIterated5 } from './reasoner-iterate-5'
 
 function generateDeepTaxonomy(size: number) {
   const store = new Store();
@@ -329,6 +330,9 @@ async function run(reasoner = reason) {
     
     console.log('Reasoning over TimBL profile and FOAF with iterators 4');
     await run(reasonIterated4);
+
+    console.log('Reasoning over TimBL profile and FOAF with iterators 5');
+    await run(reasonIterated5);
   }
 
   console.log('\nRunning Deep Taxonomy Benchmark');
@@ -345,4 +349,7 @@ async function run(reasoner = reason) {
 
   console.log('\nRunning Deep Taxonomy Benchmark with iterators4');
   await deepTaxonomy(reasonIterated4);
+
+  console.log('\nRunning Deep Taxonomy Benchmark with iterators5');
+  await deepTaxonomy(reasonIterated5);
 })();
