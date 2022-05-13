@@ -1,8 +1,7 @@
 import * as RDF from '@rdfjs/types';
-import { Store } from 'n3';
 import { forEachTerms, mapTerms, matchPatternMappings } from 'rdf-terms';
 
-export function reason(rules: Rule[], store: Store) {
+export function reason(rules: Rule[], store: RDF.DatasetCore) {
   const nodes: IRuleNode[] = rules.map(rule => ({ rule, next: [] }));
     
   // Creating rule dependencies
@@ -27,7 +26,8 @@ export function reason(rules: Rule[], store: Store) {
     for (const mapping of applyMappings(rule, store)) {
       for (const conclusion of rule.rule.conclusion || []) {
         const quad = substituteQuad(conclusion, mapping);
-        if (store.addQuad(quad) as unknown as boolean) {
+        if (!store.has(quad) as unknown as boolean) {
+          store.add(quad)
           next.push(quad);
         }
       }
@@ -71,7 +71,7 @@ export function substituteQuad(term: RDF.Quad, mapping: Mapping): RDF.Quad {
   return mapTerms(term, elem => elem.termType === 'Variable' && elem.value in mapping ? mapping[elem.value] : elem) as any;
 }
 
-function applyMappings(rule: IRuleNode, store: Store): Mapping[] {
+function applyMappings(rule: IRuleNode, store: RDF.DatasetCore): Mapping[] {
   return rule.rule.premise.reduce<Mapping[]>((m: Mapping[], premise) => {
     const mappings: Mapping[] = [];
     for (const mp of m) {
