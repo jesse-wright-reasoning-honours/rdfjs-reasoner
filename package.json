@@ -1,0 +1,28 @@
+{
+  "name": "rdfjs-reasoner",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jesse-wright-reasoning-honours/rdfjs-reasoner.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jesse-wright-reasoning-honours/rdfjs-reasoner/issues"
+  },
+  "homepage": "https://github.com/jesse-wright-reasoning-honours/rdfjs-reasoner#readme",
+  "dependencies": {
+    "asynciterator": "^3.4.0",
+    "n3": "^1.16.2",
+    "rdf-terms": "^1.8.2"
+  },
+  "devDependencies": {
+    "@rdfjs/types": "^1.1.0",
+    "@types/n3": "^1.10.4"
+  }
+}
