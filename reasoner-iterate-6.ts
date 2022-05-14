@@ -2,6 +2,8 @@ import * as RDF from '@rdfjs/types';
 import { forEachTerms, mapTerms, matchPatternMappings } from 'rdf-terms';
 import { single, AsyncIterator, UnionIterator, ArrayIterator, fromArray } from './asynciterator/asynciterator';
 import { maybeIterator, wrap } from './asynciterator/util';
+import { ReduceIterator } from './asynciterator/mappingsIterator'
+import { XProd } from './asynciterator/xrpod'
 
 export async function reason(rules: Rule[], store: RDF.DatasetCore) {
   const nodes: IRuleNode[] = rules.map(rule => ({ rule, next: [] }));
@@ -25,6 +27,9 @@ export async function reason(rules: Rule[], store: RDF.DatasetCore) {
     quads: AsyncIterator<RDF.Quad>;
 } {
     const conclusion = rule.rule.conclusion;
+    
+    
+    
     const res = applyMappings(rule, store).map<AsyncIterator<RDF.Quad>>(mapping => {
       const c = conclusion.map(conclusion => substituteQuad(conclusion, mapping))
         .filter(quad => store.has(quad) ? false : (store.add(quad), true))
@@ -44,22 +49,7 @@ export async function reason(rules: Rule[], store: RDF.DatasetCore) {
     const temp: AsyncIterator<AsyncIterator<{
       rule: IRuleNode;
       quads: AsyncIterator<RDF.Quad>;
-    }>> = results.map<AsyncIterator<{
-      rule: IRuleNode;
-      quads: AsyncIterator<RDF.Quad>;
-    }>>(result => {
-      const d = result.quads.map(quad => {
-        return fromArray(result.rule.next
-          .map(rule => maybeSubstitute(rule, quad))
-          .filter(elem => elem !== null)
-          .map(s => runRule(s as any))) as AsyncIterator<{
-            rule: IRuleNode;
-            quads: AsyncIterator<RDF.Quad>;
-          }>
-      });
-      return new UnionIterator(d, { autoStart: false })
-    });
-
+    }>> = results.map(result => new XProd(result.rule.next, result.quads, maybeSubstitute).map(s => runRule(s)));
     results = new UnionIterator(temp, { autoStart: false })
   }
 }
@@ -74,7 +64,7 @@ export function substituteQuad(term: RDF.Quad, mapping: Mapping): RDF.Quad {
   return mapTerms(term, elem => elem.termType === 'Variable' && elem.value in mapping ? mapping[elem.value] : elem) as any;
 }
 
-function getMappings(store: RDF.DatasetCore, cause: RDF.Quad, mapping?: Mapping) {
+function getMappings(store: RDF.DatasetCore, cause: RDF.Quad, mapping: Mapping | null) {
   return wrap<RDF.Quad>(store.match(
     nullifyVariables(cause.subject) as any,
     nullifyVariables(cause.predicate) as any,
@@ -98,66 +88,120 @@ function getMappings(store: RDF.DatasetCore, cause: RDF.Quad, mapping?: Mapping)
 
 function applyMappings(rule: IRuleNode, store: RDF.DatasetCore): AsyncIterator<Mapping> {
   const { premise, conclusion } = rule.rule;
-  if (premise.length === 0)
-    return new ArrayIterator<Mapping>([], { autoStart: false });
-
-  let mappings = getMappings(store, premise[0]);
-
-  for (let i = 1; i < premise.length; i++) {
-    mappings = new UnionIterator(
-      mappings.map(mapping => getMappings(store, substituteQuad(premise[i], mapping), mapping)),
-      { autoStart: false }
-    )
-  }
-
-  return mappings;
-}
-
-class MappingsIterator extends AsyncIterator<Mapping> {
-  // private data?: { mapping: Mapping, iterator: AsyncIterator<Mapping> }[];
-  private data: AsyncIterator<Mapping>[]
-  private premise: RDF.Quad[];
-  constructor(rule: IRuleNode, private store: RDF.DatasetCore) {
-    super()
-
-    const premise = this.premise = rule.rule.premise;
-    this.data = new Array(premise.length);
-    
-    this.data[0] = getMappings(store, premise[0]);
-    
-    // for (let i = 1; i < this.premise.length; i++) {
-    //   this.data[i] = getMappings(this.data[i-1].read(), premise[i])
-    // }
-  }
-
-  read(): Mapping | null {
-    let i = this.data.length - 1;
-    let item: Mapping | null;
-
-    if ((item = this.data[i].read()) !== null) {
-      return item;
-    }
-
-    // If the iterator is not done then we return null
-    if (!this.data[i].done)
-      return null;
-
-    while (i-- >= 0) {
-      item = this.data[i].read();
-      if (item === null) {
-        // If the iterator is not done then we return null
-        if (!this.data[i].done)
-          return null;
-      } else {
-        // Build back up
-        while (i++ < this.data.length -1) {
-          this.data[i] = getMappings(this.store, substituteQuad(this.premise[i], item), item)
-          item = this.data[i].read();
-        }
-      }
-    }
+  switch(premise.length) {
+    case 0: return new ArrayIterator<Mapping>([], { autoStart: false });
+    case 1: return getMappings(store, premise[0], null);
+    default: return new ReduceIterator(premise, (m, p) => getMappings(store, m ? substituteQuad(p, m) : p, m));
   }
 }
+
+// class XProd<A, B, C> extends AsyncIterator<C> {
+//   private i: number;
+//   private item: B | null = null;
+//   private setReadable = () => {
+//     if (this.readable)
+//       this.emit('readable');
+//     else
+//       this.readable = true;
+//   };
+//   constructor(private arr: A[], private iter: AsyncIterator<B>, private f: (a: A, b: B) => C) {
+//     super()
+//     this.i = arr.length - 1;
+//     iter.on('readable', this.setReadable);
+//     iter.on('end', this.setReadable);
+//   }
+
+//   close() {
+//     this.iter.removeListener('readable', this.setReadable);
+//     this.iter.removeListener('end', this.setReadable);
+//     super.close();
+//   }
+
+//   read(): C | null {
+//     if (this.i === this.arr.length - 1) {
+//       if ((this.item = this.iter.read()) === null) {
+//         if (this.iter.done) {
+//           this.close();
+//         }
+//         return null;
+//       }
+//       this.i = -1;
+//     }
+//     return this.f(this.arr[this.i++], this.item!)
+//   }
+// }
+
+// class MyIterator extends AsyncIterator<Mapping> {
+//   // private baseMappings: AsyncIterator<Mapping>;
+//   private iterators: AsyncIterator<Mapping>[];
+//   private iterator?: AsyncIterator<Mapping>;
+//   private setReadable = () => {
+//     if (this.readable)
+//       this.emit('readable');
+//     else
+//       this.readable = true;
+//   };
+//   private i = 0;
+//   constructor(private store: RDF.DatasetCore, private premises: RDF.Quad[]) {
+//     super()
+
+//     if (premises.length < 2)
+//       throw new Error('Expected at least 2 premises');
+
+//     this.iterators = new Array(premises.length - 1);
+//     this.iterators[0] = getMappings(this.store, this.premises[0]);
+//   }
+
+//   read(): Mapping | null {
+//     let item: Mapping | null;
+//     while (this.i !== -1) {
+//       if (this.i === this.premises.length - 1 && (item = this.iterators[this.i].read()) !== null)
+//         return item;
+
+//       let changed = false;
+//       // Backtrack to the last iterator that is not done
+//       while (this.i >= 0 && this.iterators[this.i].done) {
+//         changed ||= true;
+//         this.i--;
+//       }
+
+//       // Build back forward as far as possible
+//       while (this.i < this.premises.length - 1 && (item = this.iterators[this.i].read()) !== null) {
+//         changed ||= true;
+//         this.iterators[this.i++] = getMappings(this.store, substituteQuad(this.premises[this.i], item), item);
+//       }
+
+//       // Current strategy to break out when 
+//       if (!changed)
+//         break;
+//     }
+//     if (this.done) {
+//       if (this.iterator) {
+//         this.iterator.removeListener('readable', this.setReadable);
+//         this.iterator.removeListener('end', this.setReadable);
+//       }
+//       // @ts-ignore
+//       delete this.iterators;
+//       this.close();
+//     }
+//     if (this.iterator !== this.iterators[this.i]) {
+//       this.iterator?.removeListener('readable', this.setReadable);
+//       this.iterator?.removeListener('end', this.setReadable);
+//       this.iterator = this.iterators[this.i];
+//       this.iterator?.addListener('readable', this.setReadable);
+//       this.iterator?.addListener('end', this.setReadable);
+//     }
+//     return null;
+//   }
+// }
+
+
+// 1 - We only need to reflect the 'readability' of the most top-level iterator
+// that is not currently completed
+
+// 2 - Should only be done once *all* iterators in the queue are in a done state
+
+// 
 
 function substitute(quad: RDF.Quad, map:  Record<string, RDF.Term>): RDF.Quad {
   return mapTerms(quad, (term) => term.termType === 'Variable' && term.value in map ? map[term.value] : term);

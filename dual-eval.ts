@@ -1,4 +1,5 @@
 import { Store, Quad, NamedNode, Variable, Parser } from 'n3';
+const dataset = require('@graphy/memory.dataset.fast');
 import * as fs from 'fs';
 import * as path from 'path';
 import { reason } from './reasoner'
@@ -7,44 +8,49 @@ import { reason as reasonIterated2 } from './reasoner-iterate-2'
 import { reason as reasonIterated3 } from './reasoner-iterate-3'
 import { reason as reasonIterated4 } from './reasoner-iterate-4'
 import { reason as reasonIterated5 } from './reasoner-iterate-5'
+import { reason as reasonIterated6 } from './reasoner-iterate-6'
 
 function generateDeepTaxonomy(size: number) {
   const store = new Store();
 
-  store.addQuads([
+  store.add(
     new Quad(
       new NamedNode('http://eulersharp.sourceforge.net/2009/12dtb/test#ind'),
       new NamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
       new NamedNode('http://eulersharp.sourceforge.net/2009/12dtb/test#N0'),
     ),
-  ]);
+  );
 
-  store.addQuads([
+  store.add(
     new Quad(
       new NamedNode(`http://eulersharp.sourceforge.net/2009/12dtb/test#N${size}`),
       new NamedNode('http://www.w3.org/2000/01/rdf-schema#subClassOf'),
       new NamedNode('http://eulersharp.sourceforge.net/2009/12dtb/test#A2'),
     ),
-  ]);
+  );
 
   for (let i = 0; i < size; i++) {
-    store.addQuads([
+    store.add(
       new Quad(
         new NamedNode(`http://eulersharp.sourceforge.net/2009/12dtb/test#N${i}`),
         new NamedNode('http://www.w3.org/2000/01/rdf-schema#subClassOf'),
         new NamedNode(`http://eulersharp.sourceforge.net/2009/12dtb/test#N${i + 1}`),
       ),
+    );
+    store.add(
       new Quad(
         new NamedNode(`http://eulersharp.sourceforge.net/2009/12dtb/test#N${i}`),
         new NamedNode('http://www.w3.org/2000/01/rdf-schema#subClassOf'),
         new NamedNode(`http://eulersharp.sourceforge.net/2009/12dtb/test#I${i + 1}`),
-      ),
+      )
+    )
+    store.add(
       new Quad(
         new NamedNode(`http://eulersharp.sourceforge.net/2009/12dtb/test#N${i}`),
         new NamedNode('http://www.w3.org/2000/01/rdf-schema#subClassOf'),
         new NamedNode(`http://eulersharp.sourceforge.net/2009/12dtb/test#J${i + 1}`),
       ),
-    ]);
+    );
   }
 
   return store;
@@ -294,8 +300,8 @@ async function deepTaxonomy(reasoner = reason) {
   }
 }
 
-async function run(reasoner = reason) {
-  const store = new Store();
+async function run(reasoner = reason, store: Store) {
+  // const store = new Store();
   console.time('loading foaf ontology');
   await load(path.join(__dirname, './data/foaf.ttl'), store);
   console.timeEnd('loading foaf ontology');
@@ -316,23 +322,31 @@ async function run(reasoner = reason) {
   for (let i = 0; i < 3; i++) {
     console.log('\n\n\n')
 
-    console.log('Reasoning over TimBL profile and FOAF');
-    await run();
-  
-    console.log('Reasoning over TimBL profile and FOAF with iterators');
-    await run(reasonIterated);
-  
-    console.log('Reasoning over TimBL profile and FOAF with iterators 2');
-    await run(reasonIterated2);
-
-    console.log('Reasoning over TimBL profile and FOAF with iterators 3');
-    await run(reasonIterated3);
+    for (const storeFactory of [ 
+      () => new Store,
+      //  () => dataset() 
+      ]) {
+      console.log('Reasoning over TimBL profile and FOAF');
+      await run(reason, storeFactory());
     
-    console.log('Reasoning over TimBL profile and FOAF with iterators 4');
-    await run(reasonIterated4);
+      console.log('Reasoning over TimBL profile and FOAF with iterators');
+      await run(reasonIterated, storeFactory());
+    
+      console.log('Reasoning over TimBL profile and FOAF with iterators 2');
+      await run(reasonIterated2, storeFactory());
+  
+      console.log('Reasoning over TimBL profile and FOAF with iterators 3');
+      await run(reasonIterated3, storeFactory());
+      
+      console.log('Reasoning over TimBL profile and FOAF with iterators 4');
+      await run(reasonIterated4, storeFactory());
+  
+      console.log('Reasoning over TimBL profile and FOAF with iterators 5');
+      await run(reasonIterated5, storeFactory());
 
-    console.log('Reasoning over TimBL profile and FOAF with iterators 5');
-    await run(reasonIterated5);
+      console.log('Reasoning over TimBL profile and FOAF with iterators 6');
+      await run(reasonIterated6, storeFactory());
+    }
   }
 
   console.log('\nRunning Deep Taxonomy Benchmark');
@@ -352,4 +366,7 @@ async function run(reasoner = reason) {
 
   console.log('\nRunning Deep Taxonomy Benchmark with iterators5');
   await deepTaxonomy(reasonIterated5);
+
+  console.log('\nRunning Deep Taxonomy Benchmark with iterators6');
+  await deepTaxonomy(reasonIterated6);
 })();

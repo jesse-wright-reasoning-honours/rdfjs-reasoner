@@ -17,12 +17,18 @@
   },
   "homepage": "https://github.com/jesse-wright-reasoning-honours/rdfjs-reasoner#readme",
   "dependencies": {
+    "@graphy/memory.dataset.fast": "^4.3.5",
     "asynciterator": "^3.4.0",
     "n3": "^1.16.2",
     "rdf-terms": "^1.8.2"
   },
   "devDependencies": {
     "@rdfjs/types": "^1.1.0",
-    "@types/n3": "^1.10.4"
+    "@types/jest": "^27.5.1",
+    "@types/n3": "^1.10.4",
+    "jest": "^28.1.0",
+    "pre-commit": "^1.2.2",
+    "ts-jest": "^28.0.2",
+    "typescript": "^4.6.4"
   }
 }
