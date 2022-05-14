@@ -2,6 +2,7 @@ import * as RDF from '@rdfjs/types';
 import { forEachTerms, mapTerms, matchPatternMappings } from 'rdf-terms';
 import { single, AsyncIterator, UnionIterator, ArrayIterator } from './asynciterator/asynciterator';
 import { wrap } from './asynciterator/util';
+import { ReduceIterator } from './asynciterator/mappingsIterator';
 
 export async function reason(rules: Rule[], store: RDF.DatasetCore) {
   const nodes: IRuleNode[] = rules.map(rule => ({ rule, next: [] }));
@@ -72,7 +73,7 @@ export function substituteQuad(term: RDF.Quad, mapping: Mapping): RDF.Quad {
   return mapTerms(term, elem => elem.termType === 'Variable' && elem.value in mapping ? mapping[elem.value] : elem) as any;
 }
 
-function getMappings(store: RDF.DatasetCore, cause: RDF.Quad, mapping?: Mapping) {
+function getMappings(store: RDF.DatasetCore, cause: RDF.Quad, mapping: Mapping | null) {
   return wrap<RDF.Quad>(store.match(
     nullifyVariables(cause.subject) as any,
     nullifyVariables(cause.predicate) as any,
@@ -96,19 +97,25 @@ function getMappings(store: RDF.DatasetCore, cause: RDF.Quad, mapping?: Mapping)
 
 function applyMappings(rule: IRuleNode, store: RDF.DatasetCore): AsyncIterator<Mapping> {
   const { premise, conclusion } = rule.rule;
-  if (premise.length === 0)
-    return single({});
-
-  let mappings = getMappings(store, premise[0]);
-
-  for (let i = 1; i < premise.length; i++) {
-    mappings = new UnionIterator(
-      mappings.map(mapping => getMappings(store, substituteQuad(premise[i], mapping), mapping)),
-      { autoStart: false }
-    )
+  switch(premise.length) {
+    case 0: return new ArrayIterator<Mapping>([{}], { autoStart: false });
+    case 1: return getMappings(store, premise[0], null);
+    default: return new ReduceIterator(premise, (m, p) => getMappings(store, m ? substituteQuad(p, m) : p, m));
   }
+  // const { premise, conclusion } = rule.rule;
+  // if (premise.length === 0)
+  //   return single({});
 
-  return mappings;
+  // let mappings = getMappings(store, premise[0]);
+
+  // for (let i = 1; i < premise.length; i++) {
+  //   mappings = new UnionIterator(
+  //     mappings.map(mapping => getMappings(store, substituteQuad(premise[i], mapping), mapping)),
+  //     { autoStart: false }
+  //   )
+  // }
+
+  // return mappings;
 }
 
 function substitute(quad: RDF.Quad, map:  Record<string, RDF.Term>): RDF.Quad {

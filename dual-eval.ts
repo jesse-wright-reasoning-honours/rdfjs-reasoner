@@ -9,6 +9,8 @@ import { reason as reasonIterated3 } from './reasoner-iterate-3'
 import { reason as reasonIterated4 } from './reasoner-iterate-4'
 import { reason as reasonIterated5 } from './reasoner-iterate-5'
 import { reason as reasonIterated6 } from './reasoner-iterate-6'
+import { reason as reasonIterated7 } from './reasoner-iterate-7'
+import { reason as reasonIterated8 } from './reasoner-iterate-8'
 
 function generateDeepTaxonomy(size: number) {
   const store = new Store();
@@ -332,20 +334,26 @@ async function run(reasoner = reason, store: Store) {
       console.log('Reasoning over TimBL profile and FOAF with iterators');
       await run(reasonIterated, storeFactory());
     
-      console.log('Reasoning over TimBL profile and FOAF with iterators 2');
-      await run(reasonIterated2, storeFactory());
+      // console.log('Reasoning over TimBL profile and FOAF with iterators 2');
+      // await run(reasonIterated2, storeFactory());
   
-      console.log('Reasoning over TimBL profile and FOAF with iterators 3');
-      await run(reasonIterated3, storeFactory());
+      // console.log('Reasoning over TimBL profile and FOAF with iterators 3');
+      // await run(reasonIterated3, storeFactory());
       
-      console.log('Reasoning over TimBL profile and FOAF with iterators 4');
-      await run(reasonIterated4, storeFactory());
+      // console.log('Reasoning over TimBL profile and FOAF with iterators 4');
+      // await run(reasonIterated4, storeFactory());
   
-      console.log('Reasoning over TimBL profile and FOAF with iterators 5');
-      await run(reasonIterated5, storeFactory());
+      // console.log('Reasoning over TimBL profile and FOAF with iterators 5');
+      // await run(reasonIterated5, storeFactory());
 
-      console.log('Reasoning over TimBL profile and FOAF with iterators 6');
+      // console.log('Reasoning over TimBL profile and FOAF with iterators 6');
       await run(reasonIterated6, storeFactory());
+
+      console.log('Reasoning over TimBL profile and FOAF with iterators 7');
+      await run(reasonIterated7, storeFactory());
+
+      console.log('Reasoning over TimBL profile and FOAF with iterators 8');
+      await run(reasonIterated8, storeFactory());
     }
   }
 
@@ -355,18 +363,24 @@ async function run(reasoner = reason, store: Store) {
   console.log('\nRunning Deep Taxonomy Benchmark with iterators');
   await deepTaxonomy(reasonIterated);
 
-  console.log('\nRunning Deep Taxonomy Benchmark with iterators2');
-  await deepTaxonomy(reasonIterated2);
+  // console.log('\nRunning Deep Taxonomy Benchmark with iterators2');
+  // await deepTaxonomy(reasonIterated2);
 
-  console.log('\nRunning Deep Taxonomy Benchmark with iterators3');
-  await deepTaxonomy(reasonIterated3);
+  // console.log('\nRunning Deep Taxonomy Benchmark with iterators3');
+  // await deepTaxonomy(reasonIterated3);
 
-  console.log('\nRunning Deep Taxonomy Benchmark with iterators4');
-  await deepTaxonomy(reasonIterated4);
+  // console.log('\nRunning Deep Taxonomy Benchmark with iterators4');
+  // await deepTaxonomy(reasonIterated4);
 
-  console.log('\nRunning Deep Taxonomy Benchmark with iterators5');
-  await deepTaxonomy(reasonIterated5);
+  // console.log('\nRunning Deep Taxonomy Benchmark with iterators5');
+  // await deepTaxonomy(reasonIterated5);
 
-  console.log('\nRunning Deep Taxonomy Benchmark with iterators6');
-  await deepTaxonomy(reasonIterated6);
+  // console.log('\nRunning Deep Taxonomy Benchmark with iterators6');
+  // await deepTaxonomy(reasonIterated6);
+
+  console.log('\nRunning Deep Taxonomy Benchmark with iterators7');
+  await deepTaxonomy(reasonIterated7);
+
+  console.log('Reasoning over TimBL profile and FOAF with iterators 8');
+  await deepTaxonomy(reasonIterated8);
 })();

@@ -89,7 +89,7 @@ function getMappings(store: RDF.DatasetCore, cause: RDF.Quad, mapping: Mapping |
 function applyMappings(rule: IRuleNode, store: RDF.DatasetCore): AsyncIterator<Mapping> {
   const { premise, conclusion } = rule.rule;
   switch(premise.length) {
-    case 0: return new ArrayIterator<Mapping>([], { autoStart: false });
+    case 0: return new ArrayIterator<Mapping>([{}], { autoStart: false });
     case 1: return getMappings(store, premise[0], null);
     default: return new ReduceIterator(premise, (m, p) => getMappings(store, m ? substituteQuad(p, m) : p, m));
   }
