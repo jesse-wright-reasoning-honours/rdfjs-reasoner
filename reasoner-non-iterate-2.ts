@@ -71,7 +71,41 @@ export function substituteQuad(term: RDF.Quad, mapping: Mapping): RDF.Quad {
   return mapTerms(term, elem => elem.termType === 'Variable' && elem.value in mapping ? mapping[elem.value] : elem) as any;
 }
 
+// Don't reduce - and handle the last substitution differently - by running
+// the 'has' call straight away. This will reduce appends to buffers, and
+// also significantly reduce the number of mappings that are generated (potentially)
 function applyMappings(rule: IRuleNode, store: RDF.DatasetCore): Mapping[] {
+  const premise = rule.rule.premise;
+
+  function match(cause: RDF.Quad) {
+    return store.match(
+      nullifyVariables(cause.subject) as any,
+      nullifyVariables(cause.predicate) as any,
+      nullifyVariables(cause.object) as any,
+      nullifyVariables(cause.graph) as any,
+    );
+  }
+
+  if (premise.length === 0) {
+    throw new Error('error');
+  }
+
+  const m = match(premise[0]);
+
+  for (let i = 1; i <= premise.length - 2; i++) {
+
+  }
+
+  const [cause] = premise;
+
+  
+  
+  
+  for (let i)
+  
+  
+  
+  
   return rule.rule.premise.reduce<Mapping[]>((m: Mapping[], premise) => {
     const mappings: Mapping[] = [];
     for (const mp of m) {
@@ -88,7 +122,8 @@ function applyMappings(rule: IRuleNode, store: RDF.DatasetCore): Mapping[] {
           forEachTerms(cause, (term, key) => {
             if (term.termType === 'Variable' && localMapping) {
               if (term.value in localMapping && !localMapping[term.value].equals(quad[key])) {
-                localMapping = null;
+                localMapping = null; // This null check is very expensive and can be removed in any case where
+                // there are no equal variables for the same term
               } else {
                 localMapping[term.value] = quad[key];
               }
@@ -104,7 +139,17 @@ function applyMappings(rule: IRuleNode, store: RDF.DatasetCore): Mapping[] {
       }
     }
     return mappings;
-  }, [{}])
+  }, [{}]);
+
+  for (const mapping of applyMappings(rule, store)) {
+    for (const conclusion of rule.rule.conclusion || []) {
+      const quad = substituteQuad(conclusion, mapping);
+      if (!store.has(quad) as unknown as boolean) {
+        store.add(quad)
+        next.push(quad);
+      }
+    }
+  }
 }
 
 function substitute(quad: RDF.Quad, map:  Record<string, RDF.Term>): RDF.Quad {

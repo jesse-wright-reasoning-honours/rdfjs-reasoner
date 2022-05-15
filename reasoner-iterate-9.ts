@@ -86,7 +86,13 @@ function getMappings(store: RDF.DatasetCore, cause: RDF.Quad, mapping: Mapping |
         }
       }
     });
-    return localMapping && (mapping ? Object.assign(localMapping, mapping) : localMapping);
+
+    if (localMapping !== null) {
+      for (const key in mapping)
+        localMapping[key] = mapping[key]
+    }
+
+    return localMapping;
   });
 }
 
