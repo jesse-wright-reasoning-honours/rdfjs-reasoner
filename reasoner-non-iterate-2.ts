@@ -130,10 +130,9 @@ function applyMappings(rule: IRuleNode, store: RDF.DatasetCore): Mapping[] {
             }
           });
             if (localMapping !== null) {
-              for (const key in mp)
-                localMapping[key] = mp[key]
+              mappings.push(Object.assign(localMapping, mp))
             }
-            mappings.push(localMapping);
+            // mappings.push(localMapping);
             // return localMapping;
             // mappings.push(Object.assign(localMapping, mp));
       }
@@ -156,6 +155,7 @@ function substitute(quad: RDF.Quad, map:  Record<string, RDF.Term>): RDF.Quad {
   return mapTerms(quad, (term) => term.termType === 'Variable' && term.value in map ? map[term.value] : term);
 }
 
+// TODO: Pre-compute this since it has a fairly large overhead atm.
 function maybeSubstitute({ rule: { rule, next }, index }: { rule: IRuleNode, index: number }, quad: RDF.Quad): IRuleNode | null {
   let mapping: Record<string, RDF.Term> | null = {};
   const pattern = rule.premise[index];
@@ -165,7 +165,7 @@ function maybeSubstitute({ rule: { rule, next }, index }: { rule: IRuleNode, ind
       // Verify that it is a valid match
       if (!term.equals(quad[name])) {
         mapping = null;
-      return;
+        return;
       }
     }
 
